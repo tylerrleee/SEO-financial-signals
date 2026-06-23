@@ -54,13 +54,7 @@ def add_ticker(ticker,response): ## Add a new stock ticker to the database, mayb
         conn.commit()
 def display_stock_summary(ticker):
     with engine.connect() as conn:
-        result = conn.execute(
-            db.text("SELECT * FROM stock_data WHERE ticker = :ticker"),
-            {"ticker": ticker},
-        ).mappings().fetchone()
-        if result is None:
-            print(f"No data found for ticker {ticker}.")
-            return
+        result = conn.execute(db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), {"ticker": ticker}).mappings().fetchone()
         print(f"Stock Summary for {ticker}:")
         print(f"Current Price: {result['current_price']}")
         print(f"Market Cap: {result['market_cap']}")
@@ -79,6 +73,7 @@ Let users choose inputs
 
 ticker = str(input("Enter Ticker: "))
 url = f"https://sugra.ai/api/v2/quotes/{ticker}/info"
+news_url = f"https://sugra.ai/api/v2/quotes/{ticker}/news"
 params = {
     "fields": "currentPrice,marketCap,trailingPE,totalRevenue,revenueGrowth,profitMargins,freeCashflow,totalDebt,reccomdationKey,targetMeanPrice"
 }
@@ -92,16 +87,56 @@ response = requests.get(
 )
 add_ticker(ticker,response)
 selected_stock = ticker 
+main_loop = True
+while main_loop:
+    print(f"Selected Stock: {selected_stock}\n")
+    options = print(" [1] Stock Summary\n",
+                    "[2] Latest News\n",
+                    "[3] Switch Ticker\n",
+                    "[4] Add/Update Ticker \n",
+                    "[5] Generate AI Summary\n",
+                    "[6] Exit\n")
+    action = int(input("Choose action: ")) 
+    if action == 1:
+        display_stock_summary(selected_stock)
+    elif action == 2:
+        news_response = requests.get(
+            news_url,
+            headers=headers
+        )
+        news_data = news_response.json()['data']
+        print(f"Latest News for {selected_stock}:")
+        for article in news_data:
+            print("-----------------------------")
+            print(f"Title: {article['title']}")
+            print(f"Date: {article['pubDate']}")
+            print(f"Source: {article['source']}")
+            print(f"URL: {article['link']}\n")
+        input("Press Enter to continue...")
+    elif action == 3:
+        new_ticker = str(input("Enter Ticker to switch to: "))
+        selected_stock = new_ticker
+        
+    elif action == 4:
+        
+        new_ticker = str(input("Enter Ticker to add/update: "))
+        url = f"https://sugra.ai/api/v2/quotes/{new_ticker}/info"
+        params = {
+            "fields": "currentPrice,marketCap,trailingPE,totalRevenue,revenueGrowth,profitMargins,freeCashflow,totalDebt,reccomdationKey,targetMeanPrice"
+        }
+        headers = {
+            "x-api-key": os.getenv('SUGRA_API')
+        }
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers
+        )
+        add_ticker(new_ticker,response)
+        selected_stock = new_ticker
 
-
-options = print(" [1] Stock Summary\n",
-                "[2] Latest News\n",
-                "[3] Recent Move\n", 
-                "[4] Risks")
-action = int(input("Choose action: ")) 
-if action == 1:
-    display_stock_summary(selected_stock)
-
+    elif action == 6:
+        main_loop = False
 
 # Get data    
 type_data = {1: '/annual/income-statement', 
