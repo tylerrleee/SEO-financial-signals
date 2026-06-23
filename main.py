@@ -56,17 +56,17 @@ def display_stock_summary(ticker):
     with engine.connect() as conn:
         result = conn.execute(db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), {"ticker": ticker}).mappings().fetchone()
         print(f"Stock Summary for {ticker}:")
-        print(f"Current Price: {result['current_price']}")
-        print(f"Market Cap: {result['market_cap']}")
+        print(f"Current Price: {result['current_price']:,.2f}$")
+        print(f"Market Cap: {result['market_cap']:,.2f}$")
         print(f"P/E Ratio: {result['pe_ratio']}")
-        print(f"Revenue: {result['revenue']}")
+        print(f"Revenue: {result['revenue']:,.2f}$")
         print(f"Revenue Growth: {result['revenue_growth']}")
         print(f"Profit Margin: {result['profit_margin']}")
         print(f"Free Cash Flow: {result['free_cash_flow']}")
-        print(f"Total Debt: {result['debt']}")
+        print(f"Total Debt: {result['debt']:,.2f}$")
         print(f"Analyst Rating: {result['analyst_rating']}")
-        print(f"Price Target: {result['price_target']}")
-        
+        print(f"Price Target: {result['price_target']:,.2f}$")
+
 """
 Let users choose inputs
 """ 
@@ -94,11 +94,13 @@ while main_loop:
                     "[2] Latest News\n",
                     "[3] Switch Ticker\n",
                     "[4] Add/Update Ticker \n",
-                    "[5] Generate AI Summary\n",
-                    "[6] Exit\n")
+                    "[5] Generate AI Summary of Selected Stock\n"
+                    " [6] Compact View\n",
+                    "[7] Exit\n")
     action = int(input("Choose action: ")) 
     if action == 1:
         display_stock_summary(selected_stock)
+        input("Press Enter to continue...")
     elif action == 2:
         news_response = requests.get(
             news_url,
@@ -116,6 +118,12 @@ while main_loop:
     elif action == 3:
         new_ticker = str(input("Enter Ticker to switch to: "))
         selected_stock = new_ticker
+        if selected_stock not in [row['ticker'] for row in engine.execute(db.text("SELECT ticker FROM stock_data")).mappings().fetchall()]:
+            print(f"{selected_stock} not found in database. Please add it first.")
+            input("Press Enter to continue...")
+        else:
+            print(f"Switched to {selected_stock}.")
+            input("Press Enter to continue...")
         
     elif action == 4:
         
@@ -134,8 +142,14 @@ while main_loop:
         )
         add_ticker(new_ticker,response)
         selected_stock = new_ticker
-
     elif action == 6:
+        with engine.connect() as conn:
+            result = conn.execute(db.text("SELECT ticker, current_price FROM stock_data")).mappings().fetchall()
+            print("Compact View of All Stocks:")
+            for row in result:
+                print(f"{row['ticker']}: {row['current_price']}")
+            input("Press Enter to continue...")
+    elif action == 7:
         main_loop = False
 
 # Get data    
