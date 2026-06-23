@@ -88,7 +88,7 @@ add_ticker(ticker,response)
 selected_stock = ticker 
 
 
-options = print("[1] Stock Summary\n",
+options = print(" [1] Stock Summary\n",
                 "[2] Latest News\n",
                 "[3] Recent Move\n", 
                 "[4] Risks")
