@@ -54,7 +54,13 @@ def add_ticker(ticker,response): ## Add a new stock ticker to the database, mayb
         conn.commit()
 def display_stock_summary(ticker):
     with engine.connect() as conn:
-        result = conn.execute(db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), {"ticker": ticker}).mappings().fetchone()
+        result = conn.execute(
+            db.text("SELECT * FROM stock_data WHERE ticker = :ticker"),
+            {"ticker": ticker},
+        ).mappings().fetchone()
+        if result is None:
+            print(f"No data found for ticker {ticker}.")
+            return
         print(f"Stock Summary for {ticker}:")
         print(f"Current Price: {result['current_price']}")
         print(f"Market Cap: {result['market_cap']}")
