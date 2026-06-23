@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 load_dotenv()
-engine = db.create_engine('sqlite:///financials.db')
+engine = db.create_engine('sqlite:///financials.db') # Initalizing the database
 with engine.connect() as conn:
     conn.execute(db.text("""
         CREATE TABLE IF NOT EXISTS stock_data (
@@ -25,7 +25,7 @@ with engine.connect() as conn:
         )
     """))
     conn.commit()
-def add_ticker(ticker,response):
+def add_ticker(ticker,response): ## Add a new stock ticker to the database, maybe put api call in this function?
     data = response.json()['data']
     rows = {"ticker": ticker,
             "current_price": data.get("currentPrice"),
@@ -52,23 +52,26 @@ def add_ticker(ticker,response):
             )
         """), rows)
         conn.commit()
+def display_stock_summary(ticker):
+    with engine.connect() as conn:
+        result = conn.execute(db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), {"ticker": ticker}).mappings().fetchone()
+        print(f"Stock Summary for {ticker}:")
+        print(f"Current Price: {result['current_price']}")
+        print(f"Market Cap: {result['market_cap']}")
+        print(f"P/E Ratio: {result['pe_ratio']}")
+        print(f"Revenue: {result['revenue']}")
+        print(f"Revenue Growth: {result['revenue_growth']}")
+        print(f"Profit Margin: {result['profit_margin']}")
+        print(f"Free Cash Flow: {result['free_cash_flow']}")
+        print(f"Total Debt: {result['debt']}")
+        print(f"Analyst Rating: {result['analyst_rating']}")
+        print(f"Price Target: {result['price_target']}")
+        
 """
 Let users choose inputs
 """ 
 
 ticker = str(input("Enter Ticker: "))
-options = print(" [1] Stock Summary\n",
-                "[2] Latest News\n",
-                "[3] Recent Move\n", 
-                "[4] Risks")
-action = int(input("Choose action: "))  
-
-# Get data    
-type_data = {1: '/annual/income-statement', 
-            2: 'news', 
-            3: '', 
-            4: ''}
-
 url = f"https://sugra.ai/api/v2/quotes/{ticker}/info"
 params = {
     "fields": "currentPrice,marketCap,trailingPE,totalRevenue,revenueGrowth,profitMargins,freeCashflow,totalDebt,reccomdationKey,targetMeanPrice"
@@ -81,23 +84,26 @@ response = requests.get(
     params=params,
     headers=headers
 )
-
-# Get db
-
-
-# df.to_sql('stock_data', con=engine, if_exists='replace', index=False)
-
-# with engine.connect() as connection:
-#    query_result = connection.execute(db.text("SELECT * FROM stock_data;")).fetchall()
-#    print(pd.DataFrame(query_result))
+add_ticker(ticker,response)
+selected_stock = ticker 
 
 
-# ai
-# client = genai.Client(
-#     api_key=os.getenv('GEMINI_API')
-# )
+options = print("[1] Stock Summary\n",
+                "[2] Latest News\n",
+                "[3] Recent Move\n", 
+                "[4] Risks")
+action = int(input("Choose action: ")) 
+if action == 1:
+    display_stock_summary(selected_stock)
 
 
+# Get data    
+type_data = {1: '/annual/income-statement', 
+            2: 'news', 
+            3: '', 
+            4: ''}
+
+## gemini to be used later
 # response = client.models.generate_content(
 #     model="gemini-2.5-flash",
 #     config=types.GenerateContentConfig(
