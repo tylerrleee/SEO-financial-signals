@@ -5,10 +5,56 @@ import sqlalchemy as db
 import os 
 from google import genai
 from google.genai import types
-
+from dotenv import load_dotenv
+load_dotenv()
+engine = db.create_engine('sqlite:///financials.db')
+with engine.connect() as conn:
+    conn.execute(db.text("""
+        CREATE TABLE IF NOT EXISTS stock_data (
+            ticker TEXT PRIMARY KEY,
+            current_price REAL,
+            market_cap INTEGER,
+            pe_ratio REAL,
+            revenue INTEGER,
+            revenue_growth REAL,
+            profit_margin REAL,
+            free_cash_flow INTEGER,
+            debt INTEGER,
+            analyst_rating TEXT,
+            price_target REAL
+        )
+    """))
+    conn.commit()
+def add_ticker(ticker,response):
+    data = response.json()['data']
+    rows = {"ticker": ticker,
+            "current_price": data.get("currentPrice"),
+            "market_cap": data.get("marketCap"),
+            "pe_ratio": data.get("trailingPE"),
+            "revenue": data.get("totalRevenue"),
+            "revenue_growth": data.get("revenueGrowth"),
+            "profit_margin": data.get("profitMargins"),
+            "free_cash_flow": data.get("freeCashflow"),
+            "debt": data.get("totalDebt"),
+            "analyst_rating": data.get("reccomdationKey"),
+            "price_target": data.get("targetMeanPrice")
+            }
+    with engine.connect() as conn:
+        conn.execute(db.text("""
+            INSERT OR REPLACE INTO stock_data (
+                ticker, current_price, market_cap, pe_ratio, revenue,
+                revenue_growth, profit_margin, free_cash_flow, debt,
+                analyst_rating, price_target
+            ) VALUES (
+                :ticker, :current_price, :market_cap, :pe_ratio, :revenue,
+                :revenue_growth, :profit_margin, :free_cash_flow, :debt,
+                :analyst_rating, :price_target
+            )
+        """), rows)
+        conn.commit()
 """
 Let users choose inputs
-"""
+""" 
 
 ticker = str(input("Enter Ticker: "))
 options = print(" [1] Stock Summary\n",
@@ -23,9 +69,9 @@ type_data = {1: '/annual/income-statement',
             3: '', 
             4: ''}
 
-url = f"https://sugra.ai/api/v2/quotes/{ticker}/{}"
+url = f"https://sugra.ai/api/v2/quotes/{ticker}/info"
 params = {
-    "fields": "website,industry"
+    "fields": "currentPrice,marketCap,trailingPE,totalRevenue,revenueGrowth,profitMargins,freeCashflow,totalDebt,reccomdationKey,targetMeanPrice"
 }
 headers = {
     "x-api-key": os.getenv('SUGRA_API')
@@ -37,28 +83,28 @@ response = requests.get(
 )
 
 # Get db
-stock_data = response.json()['data']
-df = pd.DataFrame.from_dict([stock_data])
-engine = db.create_engine('sqlite:///financials.db')
-df.to_sql('stock_data', con=engine, if_exists='replace', index=False)
 
-with engine.connect() as connection:
-   query_result = connection.execute(db.text("SELECT * FROM stock_data;")).fetchall()
-   print(pd.DataFrame(query_result))
+
+# df.to_sql('stock_data', con=engine, if_exists='replace', index=False)
+
+# with engine.connect() as connection:
+#    query_result = connection.execute(db.text("SELECT * FROM stock_data;")).fetchall()
+#    print(pd.DataFrame(query_result))
 
 
 # ai
-client = genai.Client(
-    api_key=os.geenv('GEMINI_API')
-)
+# client = genai.Client(
+#     api_key=os.getenv('GEMINI_API')
+# )
 
-response = client.models.generate_content(
-    model="gemini-2.5-flash",
-    config=types.GenerateContentConfig(
-      system_instruction="You are a university instructor and can explain programming concepts clearly in a few words."
-    ),
-    contents="What are the advantages of pair programming?",
-)
 
-print(response.text)
+# response = client.models.generate_content(
+#     model="gemini-2.5-flash",
+#     config=types.GenerateContentConfig(
+#       system_instruction="You are a university instructor and can explain programming concepts clearly in a few words."
+#     ),
+#     contents="What are the advantages of pair programming?",
+# )
+
+# print(response.text)
 
