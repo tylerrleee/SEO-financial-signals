@@ -62,7 +62,7 @@ while main_loop:
                     "[2] Latest News\n",
                     "[3] Switch Ticker\n",
                     "[4] Add/Update Ticker \n",
-                    "[5] Generate AI \n"
+                    "[5] Generate AI Summary on Selected Stock \n"
                     " [6] Compact View\n",
                     "[7] Exit\n")
     action = int(input("Choose action: ")) 
