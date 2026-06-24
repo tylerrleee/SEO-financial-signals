@@ -62,11 +62,13 @@ while main_loop:
                     "[2] Latest News\n",
                     "[3] Switch Ticker\n",
                     "[4] Add/Update Ticker \n",
-                    "[5] Generate AI Summary\n",
-                    "[6] Exit\n")
+                    "[5] Generate AI Summary on Selected Stock \n"
+                    " [6] Compact View\n",
+                    "[7] Exit\n")
     action = int(input("Choose action: ")) 
     if action == 1:
         display_stock_summary(selected_stock)
+        input("Press Enter to continue...")
     elif action == 2:
         news_response = requests.get(
             news_url,
@@ -83,7 +85,13 @@ while main_loop:
         input("Press Enter to continue...")
     elif action == 3:
         new_ticker = str(input("Enter Ticker to switch to: "))
-        selected_stock = new_ticker
+        if new_ticker not in get_available_tickers():
+            print(f"{new_ticker} not found in database. Please add it first.")
+            input("Press Enter to continue...")
+        else:
+            print(f"Switched to {new_ticker}.")
+            selected_stock = new_ticker
+            input("Press Enter to continue...")
         
     elif action == 4:
         
@@ -176,6 +184,13 @@ while main_loop:
             print(f"Error calling Gemini API: {e}")
 
     elif action == 6:
+        with engine.connect() as conn:
+            result = conn.execute(db.text("SELECT ticker, current_price FROM stock_data")).mappings().fetchall()
+            print("Compact View of All Stocks:")
+            for row in result:
+                print(f"{row['ticker']}: {row['current_price']:,.2f}$")
+            input("Press Enter to continue...")
+    elif action == 7:
         main_loop = False
 
 # Get data    

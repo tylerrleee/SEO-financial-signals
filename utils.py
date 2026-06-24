@@ -46,26 +46,25 @@ def get_available_tickers():
                             SELECT DISTINCT ticker
                              FROM stock_data
                              """
-                             ))
+                             )).scalars().all()
 
-    return unique_tickers
+        return unique_tickers
     
 def display_stock_summary(ticker):
     with engine.connect() as conn:
         result = conn.execute(db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), {"ticker": ticker}).mappings().fetchone()
         print("\n ===" * 10)
         print(f"Stock Summary for {ticker}:")
-        print(f"Last Updated {result['last_updated']}:")
         print("===" * 10)
-        print(f"Current Price: {result['current_price']}")
-        print(f"Market Cap: {result['market_cap']}")
+        print(f"Current Price: {result['current_price']:,.2f}$")
+        print(f"Market Cap: {result['market_cap']:,.2f}$")
         print(f"P/E Ratio: {result['pe_ratio']}")
-        print(f"Revenue: {result['revenue']}")
+        print(f"Revenue: {result['revenue']:,.2f}$")
         print(f"Revenue Growth: {result['revenue_growth']}")
         print(f"Profit Margin: {result['profit_margin']}")
-        print(f"Free Cash Flow: {result['free_cash_flow']}")
-        print(f"Total Debt: {result['debt']}")
+        print(f"Free Cash Flow: {result['free_cash_flow']:,.2f}$")
+        print(f"Total Debt: {result['debt']:,.2f}$")
         print(f"Analyst Rating: {result['analyst_rating']}")
-        print(f"Price Target: {result['price_target']}")
+        print(f"Price Target: {result['price_target']:,.2f}$")
         print("===" * 6)
         
