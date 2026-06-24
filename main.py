@@ -165,7 +165,7 @@ while main_loop:
         try:
             client   = genai.Client(api_key = os.getenv('GEMINI_API')) 
             response = client.models.generate_content(
-                model = "gemini-2.5-flash"
+                model = "gemini-2.5-flash-lite"
                 , contents = prompt
             )
             print("\n ", "====" * 10, "OUTPUT", "====" * 10, flush=True)
