@@ -94,7 +94,7 @@ while main_loop:
                     "[2] Latest News\n",
                     "[3] Switch Ticker\n",
                     "[4] Add/Update Ticker \n",
-                    "[5] Generate AI Summary of Selected Stock\n"
+                    "[5] Generate AI \n"
                     " [6] Compact View\n",
                     "[7] Exit\n")
     action = int(input("Choose action: ")) 
@@ -147,7 +147,7 @@ while main_loop:
             result = conn.execute(db.text("SELECT ticker, current_price FROM stock_data")).mappings().fetchall()
             print("Compact View of All Stocks:")
             for row in result:
-                print(f"{row['ticker']}: {row['current_price']}")
+                print(f"{row['ticker']}: {row['current_price']:,.2f}$")
             input("Press Enter to continue...")
     elif action == 7:
         main_loop = False
