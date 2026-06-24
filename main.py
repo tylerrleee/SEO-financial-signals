@@ -85,12 +85,12 @@ while main_loop:
         input("Press Enter to continue...")
     elif action == 3:
         new_ticker = str(input("Enter Ticker to switch to: "))
-        selected_stock = new_ticker
-        if selected_stock not in [row['ticker'] for row in engine.execute(db.text("SELECT ticker FROM stock_data")).mappings().fetchall()]:
-            print(f"{selected_stock} not found in database. Please add it first.")
+        if new_ticker not in get_available_tickers():
+            print(f"{new_ticker} not found in database. Please add it first.")
             input("Press Enter to continue...")
         else:
-            print(f"Switched to {selected_stock}.")
+            print(f"Switched to {new_ticker}.")
+            selected_stock = new_ticker
             input("Press Enter to continue...")
         
     elif action == 4:
