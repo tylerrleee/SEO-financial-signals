@@ -9,6 +9,15 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 load_dotenv()
+params = {
+    "fields": "currentPrice,marketCap,trailingPE,totalRevenue,revenueGrowth,profitMargins,freeCashflow,totalDebt,reccomdationKey,targetMeanPrice"
+}
+headers = {
+    "x-api-key": os.getenv('SUGRA_API')
+}
+engine = get_engine() # Initalizing the database
+
+
 
 with engine.connect() as conn:
     conn.execute(db.text("""
@@ -31,158 +40,145 @@ with engine.connect() as conn:
 
 """
 Let users choose inputs
-""" 
+"""
 
-ticker = str(input("Enter Ticker: "))
-url = f"https://sugra.ai/api/v2/quotes/{ticker}/info"
+ticker = ticker_input()
 news_url = f"https://sugra.ai/api/v2/quotes/{ticker}/news"
-params = {
-    "fields": "currentPrice,marketCap,trailingPE,totalRevenue,revenueGrowth,profitMargins,freeCashflow,totalDebt,reccomdationKey,targetMeanPrice"
-}
-headers = {
-    "x-api-key": os.getenv('SUGRA_API')
-}
-response = requests.get(
-    url,
-    params=params,
-    headers=headers
-)
-
-
-# Don't add ticker if they exist
-if ticker not in get_available_tickers():
-    add_ticker(ticker,response)
 
 selected_stock = ticker 
 main_loop = True
 
 while main_loop:
-    print(f"Selected Stock: {selected_stock}\n")
-    options = print(" [1] Stock Summary\n",
-                    "[2] Latest News\n",
-                    "[3] Switch Ticker\n",
-                    "[4] Add/Update Ticker \n",
-                    "[5] Generate AI Summary\n",
-                    "[6] Exit\n")
-    action = int(input("Choose action: ")) 
-    if action == 1:
-        display_stock_summary(selected_stock)
-    elif action == 2:
-        news_response = requests.get(
-            news_url,
-            headers=headers
-        )
-        news_data = news_response.json()['data']
-        print(f"Latest News for {selected_stock}:")
-        for article in news_data:
-            print("-----------------------------")
-            print(f"Title: {article['title']}")
-            print(f"Date: {article['pubDate']}")
-            print(f"Source: {article['source']}")
-            print(f"URL: {article['link']}\n")
-        input("Press Enter to continue...")
-    elif action == 3:
-        new_ticker = str(input("Enter Ticker to switch to: "))
-        selected_stock = new_ticker
-        
-    elif action == 4:
-        
-        new_ticker = str(input("Enter Ticker to add/update: "))
-        url = f"https://sugra.ai/api/v2/quotes/{new_ticker}/info"
-        params = {
-            "fields": "currentPrice,marketCap,trailingPE,totalRevenue,revenueGrowth,profitMargins,freeCashflow,totalDebt,reccomdationKey,targetMeanPrice"
-        }
-        headers = {
-            "x-api-key": os.getenv('SUGRA_API')
-        }
-        response = requests.get(
-            url,
-            params=params,
-            headers=headers
-        )
-        add_ticker(new_ticker,response)
-        selected_stock = new_ticker
-
-    elif action == 5:
-        
-        # Get stock data
-        with engine.connect() as conn:
-            financial_record = conn.execute(
-                db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), 
-                {"ticker": selected_stock}
-            ).mappings().fetchone()
-
-        # Get lates tnews article 
-        news_response = requests.get(news_url, headers=headers)
-        news_data = news_response.json().get('data', [])
-        
-        print(f"\nAnalyzing data and generating strategic timeline for {selected_stock}...")
-
-        # Formatting to inject prompt 
-
-        news_summary = ""
-        for article in news_data[:5]:           # limit to 5 latest articles 
-            news_summary += f"- Title: {article['title']} (Source: {article['source']})\n"
-
-        prompt = f"""
-        Analyze this company's financial state and news context to construct a competitive strategic map.
-        
-        FINANCIAL DATA:
-        {financial_record}
-        
-        FINANCIAL SUMMARY:
-        {display_stock_summary(selected_stock)}
-        
-        RECENT NEWS HEADLINES:
-        {news_summary}
-        
-
-        INSTRUCTIONS:
-        Output a clear text-based visual map using the following exact structure:
-        
-        [ CENTRAL COMPANY: {selected_stock} ]
-           |
-           +-- [ STRATEGIC THEME A: (Name of theme, e.g., AI Expansion) ]
-           |    |-- Quarter Milestone: (What milestone are they hit or hitting?)
-           |    |-- Signal: (Based on news or capital movement/revenue growth)
-           |    +-- Confidence Level: (Low/Medium/High % based on coverage & earnings strength)
-           |
-           +-- [ STRATEGIC THEME B: (Name of theme, e.g., Cost Reduction) ]
-                |-- Quarter Milestone: ...
-                |-- Signal: ...
-                +-- Confidence Level: ...
-        
-        Keep it concise, realistic, and highly scannable for a terminal screen.
-
-        Formatting:
-        - Use pipes ('|'), intersections ('+') and '/ \ > < -' to show a tree structure that shows connections.
-        Edge Cases:
-        1. In the case that the ticker is invalid or does not exist in any stock exchanges, prompt user 
-            to reenter stock tickers that exists in a public exchange. 
-        2. In the case that the company just IPO'd, include information that is provided and its IPO filings, 
-            do not use information on your own accord. 
-        """
-        # Call Gemini API
-        try:
-            client   = genai.Client(api_key = os.getenv('GEMINI_API')) 
-            response = client.models.generate_content(
-                model = "gemini-3.5-flash"
-                , contents = prompt
+    try: 
+        print(f"Selected Stock: {selected_stock}\n")
+        options = print(" [1] Stock Summary\n",
+                        "[2] Latest News\n",
+                        "[3] Switch Ticker\n",
+                        "[4] Add/Update Ticker \n",
+                        "[5] Generate AI Summary\n",
+                        "[6] Exit\n")
+        action = int(input("Choose action: ")) 
+        if action == 1:
+            display_stock_summary(selected_stock)
+        elif action == 2:
+            news_response = requests.get(
+                news_url,
+                headers=headers
             )
-            print("\n ", "====" * 10, "OUTPUT", "====" * 10, flush=True)
-            print(response.text)
-            print("====" * 21)
-        except Exception as e:
-            print(f"Error calling Gemini API: {e}")
+            news_data = news_response.json()['data']
+            print(f"Latest News for {selected_stock}:")
+            for article in news_data:
+                print("-----------------------------")
+                print(f"Title: {article['title']}")
+                print(f"Date: {article['pubDate']}")
+                print(f"Source: {article['source']}")
+                print(f"URL: {article['link']}\n")
+            input("Press Enter to continue...")
+        elif action == 3:
+            new_ticker = ticker_input()
+            selected_stock = new_ticker
+            news_url = f"https://sugra.ai/api/v2/quotes/{selected_stock}/news"
+            
+        elif action == 4:
+            
+            new_ticker = str(input("Enter Ticker to add/update: "))
+            url = f"https://sugra.ai/api/v2/quotes/{new_ticker}/info"
+            params = {
+                "fields": "currentPrice,marketCap,trailingPE,totalRevenue,revenueGrowth,profitMargins,freeCashflow,totalDebt,reccomdationKey,targetMeanPrice"
+            }
+            headers = {
+                "x-api-key": os.getenv('SUGRA_API')
+            }
+            response = requests.get(
+                url,
+                params=params,
+                headers=headers
+            )
+            add_ticker(new_ticker,response)
+            selected_stock = new_ticker
+            news_url = f"https://sugra.ai/api/v2/quotes/{selected_stock}/news"
 
-    elif action == 6:
-        main_loop = False
+        elif action == 5:
+            
+            # Get stock data
+            with engine.connect() as conn:
+                financial_record = conn.execute(
+                    db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), 
+                    {"ticker": selected_stock}
+                ).mappings().fetchone()
 
-# Get data    
-type_data = {1: '/annual/income-statement', 
-            2: 'news', 
-            3: '', 
-            4: ''}
+            # Get lates tnews article 
+            news_response = requests.get(news_url, headers=headers)
+            news_data = news_response.json().get('data', [])
+            
+            print(f"\nAnalyzing data and generating strategic timeline for {selected_stock}...")
+
+            # Formatting to inject prompt 
+
+            news_summary = ""
+            for article in news_data[:5]:           # limit to 5 latest articles 
+                news_summary += f"- Title: {article['title']} (Source: {article['source']})\n"
+
+            prompt = f"""
+            Analyze this company's financial state and news context to construct a competitive strategic map.
+            
+            FINANCIAL DATA:
+            {financial_record}
+            
+            FINANCIAL SUMMARY:
+            {display_stock_summary(selected_stock)}
+            
+            RECENT NEWS HEADLINES:
+            {news_summary}
+            
+
+            INSTRUCTIONS:
+            Output a clear text-based visual map using the following exact structure:
+            
+            [ CENTRAL COMPANY: {selected_stock} ]
+            |
+            +-- [ STRATEGIC THEME A: (Name of theme, e.g., AI Expansion) ]
+            |    |-- Quarter Milestone: (What milestone are they hit or hitting?)
+            |    |-- Signal: (Based on news or capital movement/revenue growth)
+            |    +-- Confidence Level: (Low/Medium/High % based on coverage & earnings strength)
+            |
+            +-- [ STRATEGIC THEME B: (Name of theme, e.g., Cost Reduction) ]
+                    |-- Quarter Milestone: ...
+                    |-- Signal: ...
+                    +-- Confidence Level: ...
+            
+            Keep it concise, realistic, and highly scannable for a terminal screen.
+
+            Formatting:
+            - Use pipes ('|'), intersections ('+') and '/ \ > < -' to show a tree structure that shows connections.
+            Edge Cases:
+            1. In the case that the ticker is invalid or does not exist in any stock exchanges, prompt user 
+                to reenter stock tickers that exists in a public exchange. 
+            2. In the case that the company just IPO'd, include information that is provided and its IPO filings, 
+                do not use information on your own accord. 
+            """
+            # Call Gemini API
+            try:
+                client   = genai.Client(api_key = os.getenv('GEMINI_API')) 
+                response = client.models.generate_content(
+                    model = "gemini-3.5-flash"
+                    , contents = prompt
+                )
+                print("\n ", "====" * 10, "OUTPUT", "====" * 10, flush=True)
+                print(response.text)
+                print("====" * 21)
+            except Exception as e:
+                print(f"Error calling Gemini API: {e}")
+
+        elif action == 6:
+            main_loop = False
+
+    except requests.exceptions.HTTPError as http_err:
+            print(f"HTTP error occurred: {http_err}")
+    except Exception as err:
+            print(f"An unexpected error occurred: {err}")
+        
+    print("Try again...")
 
 ## gemini to be used later
 # response = client.models.generate_content(
@@ -196,3 +192,7 @@ type_data = {1: '/annual/income-statement',
 # print(response.text)
 
 # TODO: output formatting (colors, ..)
+# TODO: edge cases 
+# 1. ticker don't exist
+# 2. company IPO (None data exists)
+# TODO: 3 or more unit tests
