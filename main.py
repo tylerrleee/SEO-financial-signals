@@ -125,9 +125,6 @@ while main_loop:
             FINANCIAL DATA:
             {financial_record}
             
-            FINANCIAL SUMMARY:
-            {display_stock_summary(selected_stock)}
-            
             RECENT NEWS HEADLINES:
             {news_summary}
             
@@ -156,6 +153,8 @@ while main_loop:
                 to reenter stock tickers that exists in a public exchange. 
             2. In the case that the company just IPO'd, include information that is provided and its IPO filings, 
                 do not use information on your own accord. 
+            
+            3. If it is an index fund,
             """
             # Call Gemini API
             try:
@@ -164,13 +163,14 @@ while main_loop:
                     model = "gemini-3.5-flash"
                     , contents = prompt
                 )
-                print("\n ", "====" * 10, "OUTPUT", "====" * 10, flush=True)
+                print("\n ", "====" * 10, "OUTPUT", "====" * 10)
                 print(response.text)
                 print("====" * 21)
             except Exception as e:
                 print(f"Error calling Gemini API: {e}")
 
         elif action == 6:
+            print("\nBye!!!\n")
             main_loop = False
 
     except requests.exceptions.HTTPError as http_err:
@@ -178,7 +178,6 @@ while main_loop:
     except Exception as err:
             print(f"An unexpected error occurred: {err}")
         
-    print("Try again...")
 
 ## gemini to be used later
 # response = client.models.generate_content(
