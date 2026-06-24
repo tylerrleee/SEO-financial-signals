@@ -103,6 +103,77 @@ while main_loop:
         add_ticker(new_ticker,response)
         selected_stock = new_ticker
 
+    elif action == 5:
+        
+        # Get stock data
+        with engine.connect() as conn:
+            financial_record = conn.execute(
+                db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), 
+                {"ticker": selected_stock}
+            ).mappings().fetchone()
+
+        # Get lates tnews article 
+        news_response = requests.get(news_url, headers=headers)
+        news_data = news_response.json().get('data', [])
+        
+        print(f"\nAnalyzing data and generating strategic timeline for {selected_stock}...")
+
+        # Formatting to inject prompt 
+
+        news_summary = ""
+        for article in news_data[:5]:           # limit to 5 latest articles 
+            news_summary += f"- Title: {article['title']} (Source: {article['source']})\n"
+
+        prompt = f"""
+        Analyze this company's financial state and news context to construct a competitive strategic map.
+        
+        FINANCIAL DATA:
+        {financial_record}
+        
+        FINANCIAL SUMMARY:
+        {display_stock_summary(selected_stock)}
+        
+        RECENT NEWS HEADLINES:
+        {news_summary}
+        
+        INSTRUCTIONS:
+        Output a clear text-based visual map using the following exact structure:
+        
+        [ CENTRAL COMPANY: {selected_stock} ]
+           |
+           +-- [ STRATEGIC THEME A: (Name of theme, e.g., AI Expansion) ]
+           |    |-- Quarter Milestone: (What milestone are they hit or hitting?)
+           |    |-- Signal: (Based on news or capital movement/revenue growth)
+           |    +-- Confidence Level: (Low/Medium/High % based on coverage & earnings strength)
+           |
+           +-- [ STRATEGIC THEME B: (Name of theme, e.g., Cost Reduction) ]
+                |-- Quarter Milestone: ...
+                |-- Signal: ...
+                +-- Confidence Level: ...
+        
+        Keep it concise, realistic, and highly scannable for a terminal screen.
+
+        Formatting:
+        - Use pipes ('|'), intersections ('+') and '/ \ > < -' to show a tree structure that shows connections.
+        Edge Cases:
+        1. In the case that the ticker is invalid or does not exist in any stock exchanges, prompt user 
+            to reenter stock tickers that exists in a public exchange. 
+        2. In the case that the company just IPO'd, include information that is provided and its IPO filings, 
+            do not use information on your own accord. 
+        """
+        # Call Gemini API
+        try:
+            client   = genai.Client(api_key = os.getenv('GEMINI_API')) 
+            response = client.models.generate_content(
+                model = "gemini-2.5-flash"
+                , contents = prompt
+            )
+            print("\n ", "====" * 10, "OUTPUT", "====" * 10, flush=True)
+            print(response.text)
+            print("====" * 21)
+        except Exception as e:
+            print(f"Error calling Gemini API: {e}")
+
     elif action == 6:
         main_loop = False
 
