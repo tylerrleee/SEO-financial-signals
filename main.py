@@ -3,15 +3,18 @@ import json
 import pandas as pd
 import sqlalchemy as db
 import os 
+from utils import *
+
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 load_dotenv()
-engine = db.create_engine('sqlite:///financials.db') # Initalizing the database
+
 with engine.connect() as conn:
     conn.execute(db.text("""
         CREATE TABLE IF NOT EXISTS stock_data (
             ticker TEXT PRIMARY KEY,
+            last_updated DATETIME,
             current_price REAL,
             market_cap INTEGER,
             pe_ratio REAL,
@@ -25,47 +28,6 @@ with engine.connect() as conn:
         )
     """))
     conn.commit()
-def add_ticker(ticker,response): ## Add a new stock ticker to the database, maybe put api call in this function?
-    data = response.json()['data']
-    rows = {"ticker": ticker,
-            "current_price": data.get("currentPrice"),
-            "market_cap": data.get("marketCap"),
-            "pe_ratio": data.get("trailingPE"),
-            "revenue": data.get("totalRevenue"),
-            "revenue_growth": data.get("revenueGrowth"),
-            "profit_margin": data.get("profitMargins"),
-            "free_cash_flow": data.get("freeCashflow"),
-            "debt": data.get("totalDebt"),
-            "analyst_rating": data.get("reccomdationKey"),
-            "price_target": data.get("targetMeanPrice")
-            }
-    with engine.connect() as conn:
-        conn.execute(db.text("""
-            INSERT OR REPLACE INTO stock_data (
-                ticker, current_price, market_cap, pe_ratio, revenue,
-                revenue_growth, profit_margin, free_cash_flow, debt,
-                analyst_rating, price_target
-            ) VALUES (
-                :ticker, :current_price, :market_cap, :pe_ratio, :revenue,
-                :revenue_growth, :profit_margin, :free_cash_flow, :debt,
-                :analyst_rating, :price_target
-            )
-        """), rows)
-        conn.commit()
-def display_stock_summary(ticker):
-    with engine.connect() as conn:
-        result = conn.execute(db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), {"ticker": ticker}).mappings().fetchone()
-        print(f"Stock Summary for {ticker}:")
-        print(f"Current Price: {result['current_price']:,.2f}$")
-        print(f"Market Cap: {result['market_cap']:,.2f}$")
-        print(f"P/E Ratio: {result['pe_ratio']}")
-        print(f"Revenue: {result['revenue']:,.2f}$")
-        print(f"Revenue Growth: {result['revenue_growth']}")
-        print(f"Profit Margin: {result['profit_margin']}")
-        print(f"Free Cash Flow: {result['free_cash_flow']}")
-        print(f"Total Debt: {result['debt']:,.2f}$")
-        print(f"Analyst Rating: {result['analyst_rating']}")
-        print(f"Price Target: {result['price_target']:,.2f}$")
 
 """
 Let users choose inputs
@@ -85,9 +47,15 @@ response = requests.get(
     params=params,
     headers=headers
 )
-add_ticker(ticker,response)
+
+
+# Don't add ticker if they exist
+if ticker not in get_available_tickers():
+    add_ticker(ticker,response)
+
 selected_stock = ticker 
 main_loop = True
+
 while main_loop:
     print(f"Selected Stock: {selected_stock}\n")
     options = print(" [1] Stock Summary\n",
@@ -142,6 +110,79 @@ while main_loop:
         )
         add_ticker(new_ticker,response)
         selected_stock = new_ticker
+
+    elif action == 5:
+        
+        # Get stock data
+        with engine.connect() as conn:
+            financial_record = conn.execute(
+                db.text("SELECT * FROM stock_data WHERE ticker = :ticker"), 
+                {"ticker": selected_stock}
+            ).mappings().fetchone()
+
+        # Get lates tnews article 
+        news_response = requests.get(news_url, headers=headers)
+        news_data = news_response.json().get('data', [])
+        
+        print(f"\nAnalyzing data and generating strategic timeline for {selected_stock}...")
+
+        # Formatting to inject prompt 
+
+        news_summary = ""
+        for article in news_data[:5]:           # limit to 5 latest articles 
+            news_summary += f"- Title: {article['title']} (Source: {article['source']})\n"
+
+        prompt = f"""
+        Analyze this company's financial state and news context to construct a competitive strategic map.
+        
+        FINANCIAL DATA:
+        {financial_record}
+        
+        FINANCIAL SUMMARY:
+        {display_stock_summary(selected_stock)}
+        
+        RECENT NEWS HEADLINES:
+        {news_summary}
+        
+
+        INSTRUCTIONS:
+        Output a clear text-based visual map using the following exact structure:
+        
+        [ CENTRAL COMPANY: {selected_stock} ]
+           |
+           +-- [ STRATEGIC THEME A: (Name of theme, e.g., AI Expansion) ]
+           |    |-- Quarter Milestone: (What milestone are they hit or hitting?)
+           |    |-- Signal: (Based on news or capital movement/revenue growth)
+           |    +-- Confidence Level: (Low/Medium/High % based on coverage & earnings strength)
+           |
+           +-- [ STRATEGIC THEME B: (Name of theme, e.g., Cost Reduction) ]
+                |-- Quarter Milestone: ...
+                |-- Signal: ...
+                +-- Confidence Level: ...
+        
+        Keep it concise, realistic, and highly scannable for a terminal screen.
+
+        Formatting:
+        - Use pipes ('|'), intersections ('+') and '/ \ > < -' to show a tree structure that shows connections.
+        Edge Cases:
+        1. In the case that the ticker is invalid or does not exist in any stock exchanges, prompt user 
+            to reenter stock tickers that exists in a public exchange. 
+        2. In the case that the company just IPO'd, include information that is provided and its IPO filings, 
+            do not use information on your own accord. 
+        """
+        # Call Gemini API
+        try:
+            client   = genai.Client(api_key = os.getenv('GEMINI_API')) 
+            response = client.models.generate_content(
+                model = "gemini-3.5-flash"
+                , contents = prompt
+            )
+            print("\n ", "====" * 10, "OUTPUT", "====" * 10, flush=True)
+            print(response.text)
+            print("====" * 21)
+        except Exception as e:
+            print(f"Error calling Gemini API: {e}")
+
     elif action == 6:
         with engine.connect() as conn:
             result = conn.execute(db.text("SELECT ticker, current_price FROM stock_data")).mappings().fetchall()
@@ -169,3 +210,4 @@ type_data = {1: '/annual/income-statement',
 
 # print(response.text)
 
+# TODO: output formatting (colors, ..)
