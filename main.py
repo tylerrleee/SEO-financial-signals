@@ -136,6 +136,7 @@ while main_loop:
         RECENT NEWS HEADLINES:
         {news_summary}
         
+
         INSTRUCTIONS:
         Output a clear text-based visual map using the following exact structure:
         
@@ -165,7 +166,7 @@ while main_loop:
         try:
             client   = genai.Client(api_key = os.getenv('GEMINI_API')) 
             response = client.models.generate_content(
-                model = "gemini-2.5-flash-lite"
+                model = "gemini-3.5-flash"
                 , contents = prompt
             )
             print("\n ", "====" * 10, "OUTPUT", "====" * 10, flush=True)
@@ -194,3 +195,4 @@ type_data = {1: '/annual/income-statement',
 
 # print(response.text)
 
+# TODO: output formatting (colors, ..)

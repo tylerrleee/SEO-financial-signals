@@ -4,6 +4,10 @@ import pandas as pd
 import sqlalchemy as db
 from datetime import datetime
 
+# TODO Mock API response
+# Mock DB
+# Mock SQL queries
+
 engine = db.create_engine('sqlite:///financials.db') # Initalizing the database
 
 def add_ticker(ticker,response): ## Add a new stock ticker to the database, maybe put api call in this function?
