@@ -57,10 +57,12 @@ while main_loop:
                         "[3] Switch Ticker\n",
                         "[4] Add/Update Ticker \n",
                         "[5] Generate AI Summary\n",
-                        "[6] Exit\n")
+                        "[6] Show all Stocks in Database\n",
+                        "[7] Exit\n")
         action = int(input("Choose action: ")) 
         if action == 1:
             display_stock_summary(selected_stock)
+            input("Press Enter to continue...")
         elif action == 2:
             news_response = requests.get(
                 news_url,
@@ -161,7 +163,7 @@ while main_loop:
             try:
                 client   = genai.Client(api_key = os.getenv('GEMINI_API'))
                 response = client.models.generate_content(
-                    model = "gemini-3.5-flash"
+                    model = "gemini-3.1-flash-lite"
                     , contents = prompt
                 )
                 # ANSI color codes
@@ -182,8 +184,15 @@ while main_loop:
                 print(CYAN + "====" * 21 + RESET)
             except Exception as e:
                 print(f"Error calling Gemini API: {e}")
-
+            input("Press Enter to continue...")
         elif action == 6:
+            with engine.connect() as conn:
+                result = conn.execute(db.text("SELECT ticker, current_price FROM stock_data")).mappings().fetchall()
+                print("Compact View of All Stocks:")
+                for row in result:
+                    print(f"Ticker: {row['ticker']}, Current Price: {row['current_price']:,.2f}$")
+                input("Press Enter to continue...")
+        elif action == 7:
             print("\nBye!!!\n")
             main_loop = False
 
