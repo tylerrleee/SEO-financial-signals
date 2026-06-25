@@ -5,7 +5,6 @@ import sqlalchemy as db
 import os 
 from utils import *
 from colorama import Fore, Style
-
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
@@ -62,6 +61,24 @@ while main_loop:
         action = int(input("Choose action: ")) 
         if action == 1:
             display_stock_summary(selected_stock)
+            explain = input("Want a brief explanation of each metric? (y/n): ").strip().lower()
+            if explain == 'y':
+                explanations = {
+                    "Current Price":   "The price of one share right now.",
+                    "Market Cap":      "Total value of all shares combined.",
+                    "P/E Ratio":       "Price-to-Earnings ratio. How much investors pay per $1 of profit.",
+                    "Revenue":         "Total money the company brought in from sales before any expenses.",
+                    "Revenue Growth":  "How much revenue increased compared to the same period last year.",
+                    "Profit Margin":   "Percentage of revenue that becomes actual profit after expenses",
+                    "Free Cash Flow":  "Cash left over after expenses, which can be used for growth or paying debt.",
+                    "Total Debt":      "All the money the company owes, higher = more risk.",
+                    "Analyst Rating":  "Wall Street's opinion, either buy, hold, or sell.",
+                    "Price Target":    "The average price analysts predict the stock will reach within the next 12 months.",
+                }
+                print()
+                for metric, description in explanations.items():
+                    print(f"  {metric}: {description}")
+                print()
             input("Press Enter to continue...")
         elif action == 2:
             news_response = requests.get(
