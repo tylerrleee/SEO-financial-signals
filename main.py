@@ -4,6 +4,7 @@ import pandas as pd
 import sqlalchemy as db
 import os 
 from utils import *
+from colorama import Fore, Style
 
 from google import genai
 from google.genai import types
@@ -158,14 +159,27 @@ while main_loop:
             """
             # Call Gemini API
             try:
-                client   = genai.Client(api_key = os.getenv('GEMINI_API')) 
+                client   = genai.Client(api_key = os.getenv('GEMINI_API'))
                 response = client.models.generate_content(
                     model = "gemini-3.5-flash"
                     , contents = prompt
                 )
-                print("\n ", "====" * 10, "OUTPUT", "====" * 10)
-                print(response.text)
-                print("====" * 21)
+                # ANSI color codes
+                CYAN = '\033[96m'
+                GREEN = '\033[92m'
+                YELLOW = '\033[93m'
+                RESET = '\033[0m'
+                BOLD = '\033[1m'
+
+                print("\n ", CYAN + "====" * 10, "OUTPUT", "====" * 10 + RESET)
+                colored_output = response.text
+                
+                # Highlight key sections
+                colored_output = colored_output.replace("[ CENTRAL COMPANY:", f"{BOLD}{CYAN}[ CENTRAL COMPANY:{RESET}")
+                colored_output = colored_output.replace("[ STRATEGIC THEME", f"{BOLD}{GREEN}[ STRATEGIC THEME{RESET}")
+                colored_output = colored_output.replace("Confidence Level:", f"{YELLOW}Confidence Level:{RESET}")
+                print(colored_output)
+                print(CYAN + "====" * 21 + RESET)
             except Exception as e:
                 print(f"Error calling Gemini API: {e}")
 
@@ -179,14 +193,7 @@ while main_loop:
             print(f"An unexpected error occurred: {err}")
         
 
-## gemini to be used later
-# response = client.models.generate_content(
-#     model="gemini-2.5-flash",
-#     config=types.GenerateContentConfig(
-#       system_instruction="You are a university instructor and can explain programming concepts clearly in a few words."
-#     ),
-#     contents="What are the advantages of pair programming?",
-# )
+
 
 # print(response.text)
 
