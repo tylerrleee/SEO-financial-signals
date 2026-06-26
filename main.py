@@ -60,27 +60,12 @@ while main_loop:
                         "[7] Exit\n")
         action = int(input("Choose action: ")) 
         if action == 1:
+            print("\n" * 10)
             display_stock_summary(selected_stock)
-            explain = input("Want a brief explanation of each metric? (y/n): ").strip().lower()
-            if explain == 'y':
-                explanations = {
-                    "Current Price":   "The price of one share right now.",
-                    "Market Cap":      "Total value of all shares combined.",
-                    "P/E Ratio":       "Price-to-Earnings ratio. How much investors pay per $1 of profit.",
-                    "Revenue":         "Total money the company brought in from sales before any expenses.",
-                    "Revenue Growth":  "How much revenue increased compared to the same period last year.",
-                    "Profit Margin":   "Percentage of revenue that becomes actual profit after expenses",
-                    "Free Cash Flow":  "Cash left over after expenses, which can be used for growth or paying debt.",
-                    "Total Debt":      "All the money the company owes, higher = more risk.",
-                    "Analyst Rating":  "Wall Street's opinion, either buy, hold, or sell.",
-                    "Price Target":    "The average price analysts predict the stock will reach within the next 12 months.",
-                }
-                print()
-                for metric, description in explanations.items():
-                    print(f"  {metric}: {description}")
-                print()
-            input("Press Enter to continue...")
+            print("\n" * 10)
         elif action == 2:
+            print("\n" * 10)
+
             news_response = requests.get(
                 news_url,
                 headers=headers
@@ -94,11 +79,15 @@ while main_loop:
                 print(f"Source: {article['source']}")
                 print(f"URL: {article['link']}\n")
             input("Press Enter to continue...")
+            print("\n" * 10)
+
         elif action == 3:
+            print("\n" * 10)
             new_ticker = ticker_input()
             selected_stock = new_ticker
             news_url = f"https://sugra.ai/api/v2/quotes/{selected_stock}/news"
-            
+            print("\n" * 10)
+
         elif action == 4:
             
             new_ticker = str(input("Enter Ticker to add/update: "))
@@ -117,7 +106,7 @@ while main_loop:
             add_ticker(new_ticker,response)
             selected_stock = new_ticker
             news_url = f"https://sugra.ai/api/v2/quotes/{selected_stock}/news"
-
+            print("\n" * 10)
         elif action == 5:
             
             # Get stock data
@@ -164,7 +153,9 @@ while main_loop:
                     |-- Signal: ...
                     +-- Confidence Level: ...
             
-            Keep it concise, realistic, and highly scannable for a terminal screen.
+            Keep it concise, realistic, and highly scannable for a terminal screen. If mentioning a financial keyword or acronym (DCF, FCF, discounted cashflow), 
+            briefly explain what it means at the bottom.
+            For example, "P/E ratio is the Price-to-Earnings ratio. How much investors pay per $1 of profit." 
 
             Formatting:
             - Use pipes ('|'), intersections ('+') and '/ \ > < -' to show a tree structure that shows connections.
@@ -207,8 +198,10 @@ while main_loop:
                 result = conn.execute(db.text("SELECT ticker, current_price FROM stock_data")).mappings().fetchall()
                 print("Compact View of All Stocks:")
                 for row in result:
-                    print(f"Ticker: {row['ticker']}, Current Price: {row['current_price']:,.2f}$")
+                    price = f"{row['current_price']:,.2f}$" if row['current_price'] is not None else "N/A"
+                    print(f"Ticker: {row['ticker']}, Current Price: {price}")
                 input("Press Enter to continue...")
+                
         elif action == 7:
             print("\nBye!!!\n")
             main_loop = False

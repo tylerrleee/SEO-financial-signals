@@ -4,3 +4,5 @@ python-dotenv==1.2.2
 Requests==2.34.2
 SQLAlchemy==2.0.51
 google-genai
+colorama
+pytest
