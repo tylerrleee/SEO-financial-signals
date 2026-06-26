@@ -86,7 +86,7 @@ def test_display_stock_summary(fake_engine, capsys):
                 ticker, last_updated, current_price, market_cap, pe_ratio, revenue,
                 revenue_growth, profit_margin, free_cash_flow, debt, analyst_rating, price_target
             ) VALUES (
-                'AAPL', '2024-01-01', 250.0, 1, 1.0, 1,
+                'TSLA', '2024-01-01', 250.0, 1, 1.0, 1,
                 1.0, 1.0, 1.0, 1.0, 'buy', 1.0
             )
         """))
