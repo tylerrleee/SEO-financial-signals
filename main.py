@@ -196,11 +196,13 @@ while main_loop:
         elif action == 6:
             with engine.connect() as conn:
                 result = conn.execute(db.text("SELECT ticker, current_price FROM stock_data")).mappings().fetchall()
-                print("Compact View of All Stocks:")
+                print("\n" * 10)
+                print("Compact View of All Stocks:\n")
+                print("---"*10)
                 for row in result:
                     price = f"{row['current_price']:,.2f}$" if row['current_price'] is not None else "N/A"
-                    print(f"Ticker: {row['ticker']}, Current Price: {price}")
-                input("Press Enter to continue...")
+                    print(f"{Fore.RED}Ticker: {Style.RESET_ALL}{row['ticker']}, {Fore.BLUE}Current Price: {Style.RESET_ALL}{price}")
+                input("\nPress Enter to continue...")
                 
         elif action == 7:
             print("\nBye!!!\n")
